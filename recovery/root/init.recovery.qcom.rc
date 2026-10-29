@@ -1,0 +1,43 @@
+# Copyright (c) 2017-2018,2020-2021 The Linux Foundation. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# TB520FU recovery init, trimmed from the stock init.recovery.qcom.rc
+# (same USB / bootdevice / ADSP handling as the -twrp tree).
+
+on early-init
+    # ADSP loader chain (RECOVERY_KERNEL_MODULES of the kernel build, in the
+    # recovery ramdisk /lib/modules). The battery and charger live behind the
+    # ADSP; without it the recovery UI waits 5 s for a battery that never shows
+    # up.
+    insmod /lib/modules/q6_pdr_dlkm.ko
+    insmod /lib/modules/q6_notifier_dlkm.ko
+    insmod /lib/modules/snd_event_dlkm.ko
+    insmod /lib/modules/gpr_dlkm.ko
+    insmod /lib/modules/spf_core_dlkm.ko
+    insmod /lib/modules/adsp_loader_dlkm.ko
+
+on init
+    # bootable/recovery/etc/init.rc sets up the configfs gadget on fs
+    setprop sys.usb.configfs 1
+
+on property:ro.boot.usbcontroller=*
+    setprop sys.usb.controller ${ro.boot.usbcontroller}
+    wait /sys/bus/platform/devices/${ro.boot.usb.dwc3_msm:-a600000.ssusb}/mode
+    write /sys/bus/platform/devices/${ro.boot.usb.dwc3_msm:-a600000.ssusb}/mode peripheral
+    wait /sys/class/udc/${ro.boot.usbcontroller} 1
+
+on fs
+    # recovery.fstab uses /dev/block/bootdevice/by-name/*
+    wait /dev/block/platform/soc/1d84000.ufshc
+    symlink /dev/block/platform/soc/1d84000.ufshc /dev/block/bootdevice
+
+    # Boot the ADSP from the modem partition firmware
+    mkdir /vendor/firmware_mnt 0755 root root
+    mount_all /vendor/etc/charger_fw_fstab.qti --early
+    wait /sys/kernel/boot_adsp/boot
+    write /sys/kernel/boot_adsp/boot 1
+    wait /sys/class/power_supply/battery
+    # The ADSP is up: release the modem partition again, the installer
+    # unmounts every fstab entry before an install and aborts otherwise
+    # ("failed to unmount /vendor/firmware_mnt").
+    umount /vendor/firmware_mnt
