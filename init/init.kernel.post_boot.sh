@@ -47,13 +47,6 @@ function configure_zram_parameters() {
 		let zRamSizeMB=6144
 	fi
 
-        # BEGIN Lenovo, shaogw1, 2024/07/26, JLAPIS-4462, set zramsize to 12G
-        # set the zramsize to 12G on 12GB devices
-	if [ $RamSizeGB -ge 11 ]; then
-		let zRamSizeMB=12288
-	fi
-        # END JLAPIS-4462
-
 	# And enable lz4 zram compression for Go targets.
 	if [ "$low_ram" == "true" ]; then
 		echo lz4 > /sys/block/zram0/comp_algorithm
@@ -128,7 +121,7 @@ function configure_memory_parameters() {
 	# Set allocstall_threshold to 0 for all targets.
 	#
 
-#configure_zram_parameters
+	configure_zram_parameters
 	configure_read_ahead_kb_values
 	echo 100 > /proc/sys/vm/swappiness
 
