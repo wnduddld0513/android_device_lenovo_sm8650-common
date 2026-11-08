@@ -24,8 +24,15 @@ ro.surface_flinger.use_color_management=true
 ro.surface_flinger.wcg_composition_dataspace=143261696
 ro.surface_flinger.protected_contents=true
 ro.surface_flinger.use_content_detection_for_refresh_rate=true
-# Stock timers (system build.prop): touch boost 2 s, idle (no frames) 2 s
-ro.surface_flinger.set_touch_timer_ms=2000
+# Stock timers: idle (no frames) 2 s and touch boost 2 s in system/build.prop,
+# but stock vendor/build.prop raises the touch boost to 3 s.  init loads
+# /vendor/build.prop after /system/build.prop and lets the later file win even
+# for ro.* (system/core/init/property_service.cpp: "later property files to
+# override the properties in loaded in the earlier property files, regardless
+# of if they are 'ro.' properties or not"), so 3000 ms is the boost stock
+# SurfaceFlinger actually uses.  Visible as "touchTimer=" in the Scheduler
+# policy part of dumpsys SurfaceFlinger.
+ro.surface_flinger.set_touch_timer_ms=3000
 ro.surface_flinger.set_idle_timer_ms=2000
 ro.surface_flinger.force_hwc_copy_for_virtual_displays=true
 ro.surface_flinger.max_frame_buffer_acquired_buffers=3
